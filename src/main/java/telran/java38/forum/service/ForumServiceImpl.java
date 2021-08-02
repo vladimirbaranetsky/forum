@@ -3,11 +3,11 @@ package telran.java38.forum.service;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import telran.java38.forum.dao.PostRepository;
-import telran.java38.forum.dto.CommentDto;
 import telran.java38.forum.dto.NewCommentDto;
 import telran.java38.forum.dto.NewPostDto;
 import telran.java38.forum.dto.PostDto;
@@ -20,6 +20,9 @@ public class ForumServiceImpl implements ForumService {
 
 	@Autowired
 	PostRepository forumRepository;
+	
+	@Autowired
+	ModelMapper modelMapper;
 
 	@Override
 	public PostDto addNewPost(NewPostDto newPost, String author) {
@@ -72,7 +75,7 @@ public class ForumServiceImpl implements ForumService {
 	@Override
 	public PostDto addComment(String id, String author, NewCommentDto newCommentDto) {
 		Post post = forumRepository.findById(id).orElseThrow(() -> new PostNotFoundException(id));
-		post.addComment(convertToComment(author, newCommentDto.getMessage()));
+		post.addComment(new Comment(author, newCommentDto.getMessage()));
 		forumRepository.save(post);
 		return convertToPostDto(post);
 	}
@@ -85,27 +88,8 @@ public class ForumServiceImpl implements ForumService {
 	}
 
 	private PostDto convertToPostDto(Post post) {
-		return PostDto.builder()
-				.id(post.getId())
-				.author(post.getAuthor())
-				.title(post.getTitle())
-				.dateCreated(post.getDateCreated())
-				.content(post.getContent())
-				.tags(post.getTags())
-				.likes(post.getLikes())
-				.comments(post.getComments().stream().map(this::convertToCommentDto).collect(Collectors.toList()))
-				.build();
+		return modelMapper.map(post, PostDto.class);
 	}
 
-	private Comment convertToComment(String author, String message) {
-		return new Comment(author, message);
-	}
-
-	private CommentDto convertToCommentDto(Comment comment) {
-		return CommentDto.builder()
-				.user(comment.getUser())
-				.message(comment.getMessage())
-				.dateCreated(comment.getDateCreated()).likes(comment.getLikes()).build();
-	}
 
 }
